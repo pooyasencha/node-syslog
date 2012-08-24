@@ -1,3 +1,7 @@
+##2.0
+* made Syslog an instantiable object to allow using it with multiple daemonnames and options concurrently.
+
+
 ##1.1.6
 
 * remove compilation flags from binding.gyp that cause build failure with older gcc versions

@@ -1,8 +1,8 @@
 var Syslog = require('./node-syslog');
+var logger1 = new Syslog("node-syslog-test1", Syslog.LOG_PID | Syslog.LOG_ODELAY, Syslog.LOG_LOCAL0);
+var logger2 = new Syslog("node-syslog-test2", Syslog.LOG_PID | Syslog.LOG_ODELAY, Syslog.LOG_LOCAL0);
 
-Syslog.init("node-syslog-test", Syslog.LOG_PID | Syslog.LOG_ODELAY, Syslog.LOG_LOCAL0);
-Syslog.log(Syslog.LOG_INFO, "news info log test");
-Syslog.log(Syslog.LOG_ERR, "news log error test");
-Syslog.log(Syslog.LOG_DEBUG, "Last log message as debug: " + new Date());
-Syslog.close();
-
+logger1.log(Syslog.LOG_INFO, "news info log test1");
+logger1.log(Syslog.LOG_ERR, "news log error test1");
+logger2.log(Syslog.LOG_WARNING, "news warn log test2");
+logger1.log(Syslog.LOG_DEBUG, "Last log message test1 as debug: " + new Date());

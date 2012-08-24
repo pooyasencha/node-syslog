@@ -5,12 +5,16 @@ var SyslogWrapper = require('./build/Release/syslog').Syslog;
 /*
  * export Syslog as module
  */
-module.exports = {
+var Syslog = function(name, options, facility) {
+	this.logger = new SyslogWrapper(name, options, facility);
+}
+Syslog.prototype = {
+	init: function() { this.logger.init.apply(this.logger, arguments) },
+	log: function() { this.logger.log.apply(this.logger, arguments) },
+	setMask: function() { this.logger.setMask.apply(this.logger, arguments) },
+}
 
-init: SyslogWrapper.init,
-log: SyslogWrapper.log,
-setMask: SyslogWrapper.setMask,
-close: SyslogWrapper.close,
+var constants = {
 version: '1.1.6',
 
 /*
@@ -54,13 +58,10 @@ LOG_NOTICE		: 5,
 LOG_INFO		: 6,
 LOG_DEBUG		: 7
 };
+for (var key in constants) {
+	Syslog[key] = constants[key];
+}
 
-/*
- * Attach destroy handling
- */
-process.on('exit', function() {
-	SyslogWrapper.close();
-});
-
+module.exports = Syslog;
 
 })();

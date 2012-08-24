@@ -19,7 +19,7 @@ class Syslog : ObjectWrap {
 	    
     protected:
 	static v8::Persistent<v8::FunctionTemplate> constructor_template;
-	static v8::Handle<v8::Value> init   (const v8::Arguments& args);
+	static v8::Handle<v8::Value> New (const v8::Arguments& args);
 	static v8::Handle<v8::Value> log (const v8::Arguments& args);
 	static v8::Handle<v8::Value> setMask (const v8::Arguments& args);
 	static v8::Handle<v8::Value> destroy (const v8::Arguments& args);
@@ -31,10 +31,20 @@ class Syslog : ObjectWrap {
 
 
     private:
-	static void open(int, int);
-	static void close();
-	static bool connected_;
-	static char name[1024];
+	char name[1024];
+	int options;
+	int facility;
+
+
+    // lock
+    public:
+	static uv_mutex_t mutex;
+    private:
+	static class mutex_init	{
+	    public:
+		mutex_init();
+	} mutex_initializer;
+
 };
 
 }  // namespace node
