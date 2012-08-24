@@ -35,7 +35,15 @@ For more inforamtion about how to use module check test.js
 
      var Syslog = require('node-syslog');
      
-     var logger = new Syslog("node-syslog", Syslog.LOG_PID | Syslog.LOG_ODELAY, Syslog.LOG_LOCAL0);
+     var logger = new Syslog("node-syslog", Syslog.LOG_PID | Syslog.LOG_ODELAY, Syslog.LOG_LOCAL0, false);
      logger.log(Syslog.LOG_INFO, "Node Syslog Module output " + new Date());
      
 Check your /var/log/messages (syslog, syslog-ng), or /var/log/everything/current (metalog) file for any test entry.
+
+By default, .log calls are blocking, but you can use `setAsync` method to make it log in the background. **Note** that you may lose some log messages if node.js process exits (by calling process.exit or killed) before all the messages are logged.
+	
+	var Syslog = require('node-syslog');
+	Syslog.setAsync(true);
+	var logger = new Syslog("node-syslog", Syslog.LOG_PID | Syslog.LOG_ODELAY, Syslog.LOG_LOCAL0, false);
+    logger.log(Syslog.LOG_INFO, "Node Syslog Module output " + new Date());
+

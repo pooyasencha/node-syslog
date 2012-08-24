@@ -16,9 +16,11 @@ namespace node {
 class Syslog : ObjectWrap {
     public:
 	static void Initialize ( v8::Handle<v8::Object> target);
+	static void send(char *name, int options, int facility, uint32_t log_level, char *msg);
 	    
     protected:
-	static v8::Persistent<v8::FunctionTemplate> constructor_template;
+	static v8::Persistent<v8::Function> constructor;
+	static v8::Handle<v8::Value> setAsync (const v8::Arguments& args);
 	static v8::Handle<v8::Value> New (const v8::Arguments& args);
 	static v8::Handle<v8::Value> log (const v8::Arguments& args);
 	static v8::Handle<v8::Value> setMask (const v8::Arguments& args);
@@ -31,6 +33,8 @@ class Syslog : ObjectWrap {
 
 
     private:
+	static bool async;
+	
 	char name[1024];
 	int options;
 	int facility;

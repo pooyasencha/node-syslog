@@ -3,6 +3,8 @@
 using namespace v8;
 using namespace node;
 
+bool Syslog::async = false;
+
 void
 Syslog::Initialize ( Handle<Object> target)
 {
@@ -10,12 +12,29 @@ Syslog::Initialize ( Handle<Object> target)
 	t->SetClassName(String::NewSymbol("Syslog"));
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 	
+	// Static
+	NODE_SET_METHOD(t, "setAsync", Syslog::setAsync);
+	
 	// Prototype
 	NODE_SET_PROTOTYPE_METHOD(t, "log", Syslog::log);
 	NODE_SET_PROTOTYPE_METHOD(t, "setMask", Syslog::setMask);
 	
 	Persistent<Function> constructor = Persistent<Function>::New(t->GetFunction());
 	target->Set(String::NewSymbol("Syslog"), constructor);
+}
+
+Handle<Value>
+Syslog::setAsync ( const Arguments& args)
+{
+	HandleScope scope;
+	if (args.Length() == 0 || !args[0]->IsBoolean()) {
+		return ThrowException(Exception::Error(
+			String::New("Must give a boolean as argument")));
+	}
+	
+	Syslog::async = args[0]->ToBoolean()->Value();
+	
+	return scope.Close(Undefined());
 }
 
 Handle<Value>
@@ -64,12 +83,18 @@ static void UV_AfterLog(uv_work_t *req) {
 
 static void UV_Log(uv_work_t *req) {
 	struct log_request *log_req = (struct log_request *)(req->data);
+	Syslog::send(log_req->name, log_req->options, log_req->facility, log_req->log_level, log_req->msg);
+	return;
+}
+
+void
+Syslog::send(char *name, int options, int facility, uint32_t log_level, char *msg)
+{
 	uv_mutex_lock(&Syslog::mutex);
-	openlog( log_req->name, log_req->options, log_req->facility );
-	syslog(log_req->log_level, "%s", log_req->msg);
+	openlog( name, options, facility );
+	syslog( log_level, "%s", msg );
 	closelog();
 	uv_mutex_unlock(&Syslog::mutex);
-	return;
 }
 
 Handle<Value>
@@ -78,30 +103,38 @@ Syslog::log ( const Arguments& args)
 	HandleScope scope;
 	Local<Function> cb = Local<Function>::Cast(args[3]);
 	
-	struct log_request * log_req = (struct log_request *)
-		calloc(1, sizeof(struct log_request));
-	
-	if(!log_req) {
-		V8::LowMemoryNotification();
-		return ThrowException(Exception::Error(
-			String::New("Could not allocate enought memory")));
-	}
-	
-	String::AsciiValue msg(args[1]);
-	uint32_t log_level = args[0]->Int32Value();
-	
-	log_req->cb = Persistent<Function>::New(cb);
-	
 	Syslog* obj = ObjectWrap::Unwrap<Syslog>(args.This());
-	log_req->name = obj->name;
-	log_req->options = obj->options;
-	log_req->facility = obj->facility;
-	log_req->msg = strdup(*msg);
-	log_req->log_level = log_level;
-
-	uv_work_t *work_req = new uv_work_t();
-	work_req->data = log_req;
-	uv_queue_work(uv_default_loop(), work_req, UV_Log, UV_AfterLog);
+	
+	if (Syslog::async) {
+		struct log_request * log_req = (struct log_request *)
+			calloc(1, sizeof(struct log_request));
+		
+		if(!log_req) {
+			V8::LowMemoryNotification();
+			return ThrowException(Exception::Error(
+				String::New("Could not allocate enought memory")));
+		}
+		
+		uint32_t log_level = args[0]->Int32Value();
+		String::AsciiValue msg(args[1]);
+		
+		log_req->cb = Persistent<Function>::New(cb);
+		
+		log_req->name = obj->name;
+		log_req->options = obj->options;
+		log_req->facility = obj->facility;
+		log_req->msg = strdup(*msg);
+		log_req->log_level = log_level;
+		
+		uv_work_t *work_req = new uv_work_t();
+		work_req->data = log_req;
+		uv_queue_work(uv_default_loop(), work_req, UV_Log, UV_AfterLog);
+	} else {
+		uint32_t log_level = args[0]->Int32Value();
+		String::AsciiValue msg(args[1]);
+		
+		Syslog::send(obj->name, obj->options, obj->facility, log_level, *msg);
+	}
 
 	return scope.Close(Undefined());
 }

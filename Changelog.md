@@ -1,3 +1,6 @@
+##2.0.1
+* Made syslog blocking by default. Added an "setAsync" method to set wether asynchronous behavior is required or not.
+
 ##2.0
 * made Syslog an instantiable object to allow using it with multiple daemonnames and options concurrently.
 

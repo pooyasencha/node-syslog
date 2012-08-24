@@ -8,6 +8,9 @@ var SyslogWrapper = require('./build/Release/syslog').Syslog;
 var Syslog = function(name, options, facility) {
 	this.logger = new SyslogWrapper(name, options, facility);
 }
+Syslog.setAsync = function(async) {
+	SyslogWrapper.setAsync(async);
+}
 Syslog.prototype = {
 	init: function() { this.logger.init.apply(this.logger, arguments) },
 	log: function() { this.logger.log.apply(this.logger, arguments) },
