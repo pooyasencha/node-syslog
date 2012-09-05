@@ -56,4 +56,4 @@ Using `.setMask(level, upTo=true/false)`, you can set a mask to only log message
     logger.log(Syslog.LOG_INFO, "This log will appear");
     logger.log(Syslog.LOG_DEBUG, "This log will not appear");
 
-For more inforamtion about how to use this module check `test.js`.
+For more information about how to use this module check `test.js`.
