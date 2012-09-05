@@ -31,7 +31,7 @@ Node-syslog doesn't support Darwin OS and MS Windows, but should work fine with 
 
 ## Usage
 
-For more inforamtion about how to use module check test.js
+Here is an example of how to use `node-syslog`:
 
      var Syslog = require('node-syslog');
      
@@ -44,6 +44,16 @@ By default, .log calls are blocking, but you can use `setAsync` method to make i
 	
 	var Syslog = require('node-syslog');
 	Syslog.setAsync(true);
+	
 	var logger = new Syslog("node-syslog", Syslog.LOG_PID | Syslog.LOG_ODELAY, Syslog.LOG_LOCAL0, false);
-    logger.log(Syslog.LOG_INFO, "Node Syslog Module output " + new Date());
+	
+Using `.setMask(level, upTo=true/false)`, you can set a mask to only log messages of certain log level or all priorities above and including it.
 
+    var Syslog = require('node-syslog');
+	
+	var logger = new Syslog("node-syslog", Syslog.LOG_PID | Syslog.LOG_ODELAY, Syslog.LOG_LOCAL0, false);
+	logger.setMask(Syslog.LOG_INFO, true);
+    logger.log(Syslog.LOG_INFO, "This log will appear");
+    logger.log(Syslog.LOG_DEBUG, "This log will not appear");
+
+For more inforamtion about how to use this module check `test.js`.

@@ -57,6 +57,8 @@ Syslog::New ( const Arguments& args)
 	obj->name[sizeof(obj->name) - 1] = '\0';
 	obj->options = args[1]->ToInt32()->Value();
 	obj->facility = args[2]->ToInt32()->Value();
+	// log everything by default
+	obj->logmask = LOG_UPTO(LOG_DEBUG);
 	
 	obj->Wrap(args.This());
 	
@@ -65,11 +67,9 @@ Syslog::New ( const Arguments& args)
 
 struct log_request {
 	Persistent<Function> cb;
-	char *name;
-	int options;
-	int facility;
-	char *msg;
+	Syslog *syslog;
 	uint32_t log_level;
+	char *msg;
 };
 
 static void UV_AfterLog(uv_work_t *req) {
@@ -83,15 +83,16 @@ static void UV_AfterLog(uv_work_t *req) {
 
 static void UV_Log(uv_work_t *req) {
 	struct log_request *log_req = (struct log_request *)(req->data);
-	Syslog::send(log_req->name, log_req->options, log_req->facility, log_req->log_level, log_req->msg);
+	log_req->syslog->send(log_req->log_level, log_req->msg);
 	return;
 }
 
 void
-Syslog::send(char *name, int options, int facility, uint32_t log_level, char *msg)
+Syslog::send(uint32_t log_level, char *msg)
 {
 	uv_mutex_lock(&Syslog::mutex);
 	openlog( name, options, facility );
+	setlogmask(logmask);
 	syslog( log_level, "%s", msg );
 	closelog();
 	uv_mutex_unlock(&Syslog::mutex);
@@ -120,9 +121,7 @@ Syslog::log ( const Arguments& args)
 		
 		log_req->cb = Persistent<Function>::New(cb);
 		
-		log_req->name = obj->name;
-		log_req->options = obj->options;
-		log_req->facility = obj->facility;
+		log_req->syslog = obj;
 		log_req->msg = strdup(*msg);
 		log_req->log_level = log_level;
 		
@@ -133,7 +132,7 @@ Syslog::log ( const Arguments& args)
 		uint32_t log_level = args[0]->Int32Value();
 		String::AsciiValue msg(args[1]);
 		
-		Syslog::send(obj->name, obj->options, obj->facility, log_level, *msg);
+		obj->send(log_level, *msg);
 	}
 
 	return scope.Close(Undefined());
@@ -151,8 +150,10 @@ Handle<Value>
 Syslog::setMask ( const Arguments& args)
 {
 	bool upTo = false;
-	int mask, value, ret;
+	int value;
 	HandleScope scope;
+	Syslog* obj = ObjectWrap::Unwrap<Syslog>(args.This());
+	
 	
 	if (args.Length() < 1) {
 		return ThrowException(Exception::Error(String::New("You must provide an mask")));
@@ -172,15 +173,12 @@ Syslog::setMask ( const Arguments& args)
 	
 	value = args[0]->Int32Value();
 	if(upTo) {
-		mask = LOG_UPTO(value);
+		obj->logmask = LOG_UPTO(value);
 	} else {
-		mask = LOG_MASK(value);
+		obj->logmask = LOG_MASK(value);
 	}
 	
-	uv_mutex_lock(&Syslog::mutex);
-	ret = setlogmask(mask);
-	uv_mutex_unlock(&Syslog::mutex);
-	return scope.Close(Integer::New( ret ));
+	return scope.Close(Undefined());
 }
 
 // lock

@@ -16,7 +16,7 @@ namespace node {
 class Syslog : ObjectWrap {
     public:
 	static void Initialize ( v8::Handle<v8::Object> target);
-	static void send(char *name, int options, int facility, uint32_t log_level, char *msg);
+	void send(uint32_t log_level, char *msg);
 	    
     protected:
 	static v8::Persistent<v8::Function> constructor;
@@ -38,6 +38,7 @@ class Syslog : ObjectWrap {
 	char name[1024];
 	int options;
 	int facility;
+	int logmask;
 
 
     // lock
